@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Francium</title>
+<meta name="description" content="Francium: guides for running modern ASUS and AMD laptops on macOS. Wi-Fi, controls, power and graphics.">
+<link rel="icon" type="image/png" href="avatar.png">
+<meta name="theme-color" content="#0b0b0d">
+<style>
+  :root {
+    --bg: #fbfbfd;
+    --surface: rgba(255,255,255,0.68);
+    --ink: #1d1d1f;
+    --muted: #5f5f66;
+    --line: rgba(0,0,0,0.09);
+    --accent: #0a6cff;
+    --code-bg: #f2f2f5;
+    --nav-w: 264px;
+    --toc-w: 220px;
+    --head-h: 56px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b0b0d;
+      --surface: rgba(28,28,30,0.66);
+      --ink: #f5f5f7;
+      --muted: #a1a1a8;
+      --line: rgba(255,255,255,0.1);
+      --accent: #4aa3ff;
+      --code-bg: #1c1c1f;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: calc(var(--head-h) + 16px); }
+  body {
+    margin: 0;
+    font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; text-underline-offset: 3px; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+  /* ---------- Top bar: translucent, blurred, sticky ---------- */
+  .topbar {
+    position: fixed; inset: 0 0 auto 0; height: var(--head-h);
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0 1.25rem;
+    background: var(--surface);
+    backdrop-filter: saturate(200%) blur(32px);
+    -webkit-backdrop-filter: saturate(200%) blur(32px);
+    border-bottom: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 6px 24px rgba(0,0,0,0.06);
+    z-index: 50;
+  }
+  .brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+  .brand:hover { text-decoration: none; }
+  .logo {
+    width: 30px; height: 30px; border-radius: 9px; display: block;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.3);
+  }
+  .menu-btn {
+    display: none; appearance: none; border: 0; background: transparent;
+    color: var(--ink); font-size: 1.25rem; cursor: pointer; padding: 0.25rem 0.5rem;
+  }
+  .search { margin-left: auto; position: relative; width: min(320px, 40vw); }
+  .search input {
+    width: 100%; font: inherit; font-size: 0.92rem;
+    padding: 0.45rem 3.2rem 0.45rem 0.85rem;
+    border-radius: 999px; border: 1px solid var(--line);
+    background: rgba(127,127,127,0.12); color: var(--ink); outline: none;
+    transition: box-shadow 200ms ease, background 200ms ease;
+  }
+  .search input:focus { background: var(--bg); box-shadow: 0 0 0 4px rgba(10,108,255,0.2); }
+  .search kbd {
+    position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%);
+    font: 600 0.72rem ui-monospace, monospace; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 6px; padding: 0.05rem 0.35rem;
+  }
+  .gh-link { font-size: 0.92rem; color: var(--muted); white-space: nowrap; }
+
+  /* ---------- Layout: nav | content | toc ---------- */
+  .shell {
+    display: grid;
+    grid-template-columns: var(--nav-w) minmax(0, 1fr) var(--toc-w);
+    padding-top: var(--head-h);
+    min-height: 100vh;
+  }
+
+  /* Left navigation (GitBook style) */
+  .sidebar {
+    position: sticky; top: var(--head-h);
+    height: calc(100vh - var(--head-h));
+    overflow-y: auto;
+    padding: 1.25rem 1rem 2rem 1.25rem;
+    border-right: 1px solid var(--line);
+    background: var(--surface);
+    backdrop-filter: saturate(180%) blur(28px);
+    -webkit-backdrop-filter: saturate(180%) blur(28px);
+  }
+  .nav-group { margin-bottom: 1.25rem; }
+  .nav-label {
+    font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.4rem 0.6rem;
+  }
+  .nav-link {
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.42rem 0.6rem; margin: 1px 0; border-radius: 8px;
+    color: var(--ink); font-size: 0.95rem;
+    transition: background 150ms ease, transform 150ms ease;
+  }
+  .nav-link:hover { background: rgba(127,127,127,0.13); text-decoration: none; }
+  .nav-link.active { background: rgba(10,108,255,0.12); color: var(--accent); font-weight: 600; }
+  .nav-link:active { transform: scale(0.98); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; box-shadow: 0 0 0 3px rgba(127,127,127,0.15); }
+  .dot.s-available { background: #16A34A; }
+  .dot.s-upcoming  { background: #EAB308; }
+  .dot.s-early     { background: #DC2626; }
+  .dot.s-preview   { background: #2563EB; }
+  .nav-link.hidden { display: none; }
+  .nav-empty { display: none; color: var(--muted); font-size: 0.92rem; margin-left: 0.6rem; }
+
+  /* Content */
+  main { min-width: 0; padding: 2.5rem clamp(1.25rem, 4vw, 3.5rem) 6rem; max-width: 820px; width: 100%; }
+  .crumb { font-size: 0.88rem; color: var(--muted); margin-bottom: 0.5rem; }
+  h1 { font-size: clamp(2.1rem, 4.5vw, 2.9rem); line-height: 1.1; letter-spacing: -0.025em; margin: 0 0 0.7rem; }
+  h2 {
+    font-size: 1.55rem; letter-spacing: -0.015em; margin: 2.8rem 0 0.7rem;
+    padding-top: 0.5rem; scroll-margin-top: calc(var(--head-h) + 16px);
+  }
+  h3 { font-size: 1.15rem; letter-spacing: -0.01em; margin: 2rem 0 0.5rem; }
+  p.lead { font-size: 1.2rem; color: var(--muted); margin: 0 0 1.25rem; }
+  p, li { max-width: 68ch; }
+  .anchor { color: var(--muted); opacity: 0; margin-left: 0.4rem; font-weight: 400; }
+  h2:hover .anchor, h3:hover .anchor { opacity: 1; text-decoration: none; }
+
+  /* Header meta row: status badge, platform, last updated */
+  .meta { display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: center; margin: 0 0 1.5rem; font-size: 0.9rem; color: var(--muted); }
+  .meta .sep { opacity: 0.5; }
+
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em; }
+  code { background: var(--code-bg); padding: 0.1em 0.38em; border-radius: 6px; }
+  pre {
+    background: var(--code-bg); padding: 1rem 1.1rem; border-radius: 12px;
+    overflow-x: auto; line-height: 1.55; border: 1px solid var(--line);
+    position: relative; margin: 1rem 0 1.5rem;
+  }
+  pre code { background: none; padding: 0; }
+  .copy {
+    position: absolute; top: 0.5rem; right: 0.5rem;
+    font: 600 0.78rem system-ui; color: var(--muted);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+    padding: 0.25rem 0.55rem; cursor: pointer; opacity: 0; transition: opacity 150ms ease;
+  }
+  pre:hover .copy, .copy:focus-visible { opacity: 1; }
+
+  /* Steps: numbered, easy to scan */
+  ol.steps { list-style: none; padding: 0; counter-reset: step; max-width: 68ch; }
+  ol.steps > li {
+    counter-increment: step; position: relative;
+    padding: 0 0 1.4rem 3.2rem; margin: 0;
+  }
+  ol.steps > li::before {
+    content: counter(step); position: absolute; left: 0; top: 0;
+    width: 2.1rem; height: 2.1rem; border-radius: 50%;
+    display: grid; place-items: center; font-weight: 700; font-size: 0.95rem;
+    background: var(--accent); color: #fff;
+    box-shadow: 0 4px 12px rgba(10,108,255,0.3);
+  }
+  ol.steps > li::after {
+    content: ""; position: absolute; left: 1.05rem; top: 2.3rem; bottom: 0.2rem;
+    width: 2px; background: var(--line);
+  }
+  ol.steps > li:last-child::after { display: none; }
+  ol.steps > li > p:first-child { margin-top: 0.2rem; }
+  ol.steps strong { font-weight: 650; }
+
+  /* Callouts: tinted, labelled, never colour-only */
+  .callout {
+    border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    background: var(--surface); border-radius: 12px; padding: 0.9rem 1.1rem; margin: 1.4rem 0;
+  }
+  .callout .label { display: block; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.02em; margin-bottom: 0.15rem; }
+  .callout.tip { border-left-color: #16A34A; }
+  .callout.warn { border-left-color: #EAB308; }
+  .callout.stop { border-left-color: #DC2626; }
+  .callout.info { border-left-color: #2563EB; }
+  .callout p { margin: 0.25rem 0; }
+
+  .checkpoint {
+    margin: 0.5rem 0 0; padding: 0.7rem 0.9rem; border-radius: 10px;
+    background: rgba(22,163,74,0.1); font-size: 0.95rem;
+  }
+  .checkpoint::before { content: "Check: "; font-weight: 700; color: #15803D; }
+  @media (prefers-color-scheme: dark) { .checkpoint::before { color: #86EFAC; } }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; color: var(--muted); font-size: 0.85rem; }
+
+  .cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 1.5rem 0; }
+  .card {
+    display: block; padding: 1.1rem 1.2rem; border-radius: 16px;
+    background: var(--surface); border: 1px solid var(--line);
+    color: var(--ink); transition: transform 200ms ease, box-shadow 200ms ease;
+  }
+  .card:hover { text-decoration: none; transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+  .card:active { transform: scale(0.99); }
+  .card h3 { margin: 0.5rem 0 0.3rem; }
+  .card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+
+  /* Status pills: green available, blue preview, yellow upcoming, red early */
+  .pill {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    font-size: 0.78rem; font-weight: 600; line-height: 1.4;
+    padding: 0.18rem 0.6rem; border-radius: 999px; white-space: nowrap;
+  }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.s-available { background: #DCFCE7; color: #14532D; }
+  .pill.s-upcoming  { background: #FEF9C3; color: #713F12; }
+  .pill.s-early     { background: #FEE2E2; color: #7F1D1D; }
+  .pill.s-preview   { background: #DBEAFE; color: #1E3A8A; }
+  @media (prefers-color-scheme: dark) {
+    .pill.s-available { background: rgba(74,222,128,0.16); color: #86EFAC; }
+    .pill.s-upcoming  { background: rgba(250,204,21,0.16); color: #FDE68A; }
+    .pill.s-early     { background: rgba(248,113,113,0.16); color: #FCA5A5; }
+    .pill.s-preview   { background: rgba(96,165,250,0.18); color: #93C5FD; }
+  }
+
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin-top: 4rem; border-top: 1px solid var(--line); padding-top: 1.25rem; }
+  .pager a { flex: 1; padding: 0.8rem 1rem; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); }
+  .pager a:hover { text-decoration: none; background: var(--surface); }
+  .pager small { display: block; color: var(--muted); font-size: 0.8rem; }
+
+  /* Right: on this page */
+  .toc {
+    position: sticky; top: var(--head-h); align-self: start;
+    height: calc(100vh - var(--head-h)); overflow-y: auto;
+    padding: 2.5rem 1rem 2rem 0.5rem; font-size: 0.88rem;
+  }
+  .toc-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.5rem; }
+  .toc a { display: block; color: var(--muted); padding: 0.2rem 0 0.2rem 0.8rem; border-left: 2px solid var(--line); }
+  .toc a:hover { color: var(--ink); text-decoration: none; }
+  .toc a.on { color: var(--accent); border-left-color: var(--accent); }
+
+  /* Mobile */
+  .scrim { display: none; }
+  @media (max-width: 1100px) {
+    .shell { grid-template-columns: var(--nav-w) minmax(0, 1fr); }
+    .toc { display: none; }
+  }
+  @media (max-width: 820px) {
+    .shell { grid-template-columns: minmax(0, 1fr); }
+    .menu-btn { display: block; }
+    .sidebar {
+      position: fixed; top: var(--head-h); left: 0; bottom: 0; width: min(300px, 84vw);
+      height: auto; transform: translateX(-102%); z-index: 40;
+      transition: transform 320ms cubic-bezier(.2,.8,.2,1);
+      box-shadow: 0 0 40px rgba(0,0,0,0.2);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .scrim { display: block; position: fixed; inset: var(--head-h) 0 0 0; background: rgba(0,0,0,0.25); opacity: 0; pointer-events: none; transition: opacity 250ms ease; z-index: 30; }
+    .scrim.on { opacity: 1; pointer-events: auto; }
+    .gh-link { display: none; }
+    .search { width: auto; flex: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .sidebar, .scrim, .card, .nav-link { transition: none !important; }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .topbar, .sidebar { background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="menu-btn" id="menuBtn" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
+  <a class="brand" href="#/home" aria-label="Francium home"><img class="logo" src="avatar.png" alt="" width="30" height="30">Francium</a>
+  <div class="search">
+    <input id="q" type="search" placeholder="Search guides" aria-label="Search guides">
+    <kbd aria-hidden="true">/</kbd>
+  </div>
+  <a class="gh-link" href="https://github.com/FranciumOS-org" target="_blank" rel="noopener">GitHub ↗</a>
+</header>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Site navigation">
+    <div id="navRoot"></div>
+    <div class="nav-empty" id="navEmpty">No matches</div>
+  </nav>
+  <div class="scrim" id="scrim"></div>
+
+  <main id="content" tabindex="-1"></main>
+
+  <aside class="toc" id="toc" aria-label="On this page"></aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script>
+(() => {
+  const LABELS = { available: "Available", preview: "Preview", upcoming: "Upcoming", early: "Early" };
+
+  // ---------- Content ----------
+  const pages = [
+    {
+      id: "home", group: "Start", title: "Welcome to Francium", status: "",
+      summary: "Guides for running modern ASUS and AMD laptops on macOS.",
+      html: `
+        <p class="lead">Francium makes current laptops work on macOS (Hackintosh): Wi-Fi, keyboard and fan controls, power, and graphics. Every guide here is written to be followed step by step, and each one says what has actually been tested.</p>
+
+        <div class="cards">
+          <a class="card" href="#/mhelper"><span class="pill s-available">Available</span><h3>MHelper</h3><p>Fans, performance modes, keyboard colour and battery limit for ASUS laptops.</p></a>
+          <a class="card" href="#/airport-rtw89"><span class="pill s-preview">Preview</span><h3>AirPort_RTW89</h3><p>Native Wi-Fi for Realtek rtw89 cards, working day to day on one card.</p></a>
+          <a class="card" href="#/radeonized"><span class="pill s-upcoming">Upcoming</span><h3>Radeonized</h3><p>Graphics driver for Rembrandt GPUs. Not released yet; I daily-drive it.</p></a>
+          <a class="card" href="#/econized"><span class="pill s-early">Early</span><h3>Econized</h3><p>Measuring where the power goes on a Ryzen laptop under macOS.</p></a>
+        </div>
+
+        <h2>Before you start anything</h2>
+        <ol class="steps">
+          <li><p><strong>Save a boot stick.</strong> Copy your working OpenCore EFI to a USB stick and confirm it boots. If a driver breaks startup, that stick is your way back.</p></li>
+          <li><p><strong>Read the guide to the end.</strong> Each one lists what it changes and how to undo it.</p></li>
+          <li><p><strong>Report what you see.</strong> Your test result is what moves a project forward.</p></li>
+        </ol>
+
+        <div class="callout stop"><span class="label">Stop</span><p>Kernel extensions and EFI edits can stop a Mac from starting. Only do them on a machine you can recover.</p></div>
+      `
+    },
+    {
+      id: "projects", group: "Start", title: "Projects at a glance", status: "",
+      summary: "Where each project stands today.",
+      html: `
+        <p class="lead">Each badge means something specific. Read the guide before you rely on a project.</p>
+        <table>
+          <tr><th>Project</th><th>What it does</th><th>Status</th></tr>
+          <tr><td><a href="#/mhelper">MHelper</a></td><td>Fans, modes, keyboard and charge limit for ASUS laptops</td><td><span class="pill s-available">Available</span></td></tr>
+          <tr><td><a href="#/airport-rtw89">AirPort_RTW89</a></td><td>Native Wi-Fi for Realtek rtw89 cards</td><td><span class="pill s-preview">Preview</span></td></tr>
+          <tr><td><a href="#/radeonized">Radeonized</a></td><td>Graphics driver for Rembrandt GPUs</td><td><span class="pill s-upcoming">Upcoming</span></td></tr>
+          <tr><td><a href="#/econized">Econized</a></td><td>Power measurement for Ryzen laptops</td><td><span class="pill s-early">Early</span></td></tr>
+        </table>
+        <h2>What the badges mean</h2>
+        <ul>
+          <li><strong>Available:</strong> stable enough to install and use every day.</li>
+          <li><strong>Preview:</strong> I use it every day, and testers have reported it working. Expect rough edges and read the testing notes.</li>
+          <li><strong>Upcoming:</strong> not released yet. I daily-drive it, and it is not packaged for general install.</li>
+          <li><strong>Early:</strong> a measurement tool or research. It does not change how your Mac behaves.</li>
+        </ul>
+      `
+    },
+
+    // ---------- MHelper ----------
+    {
+      id: "mhelper", group: "Projects", title: "MHelper", status: "available",
+      meta: "Latest release 0.3.1 · Tested on ASUS TUF A15 FA507NU · macOS 13 or newer",
+      summary: "Fan curves, performance modes, keyboard colour and battery limit for ASUS laptops. A G-Helper for macOS.",
+      html: `
+        <p class="lead">MHelper puts your ASUS laptop's controls in the menu bar. Switch performance modes, set fan curves, change keyboard colour, and cap the battery at 80 %. It never changes your GPU mode, and it does nothing until you ask.</p>
+        <div class="callout info"><span class="label">Source</span><p>Repository: <a href="https://github.com/FranciumOS-org/MHelper" target="_blank" rel="noopener">FranciumOS-org/MHelper</a></p></div>
+
+        <h2 id="quick-start">Quick start</h2>
+        <p>If you have OpenCore running, this takes about ten minutes.</p>
+        <ol class="steps">
+          <li><p><strong>Download the disk image.</strong> From the Releases page, get <code>MHelper-&lt;version&gt;.dmg</code>.</p></li>
+          <li><p><strong>Install the kernel extension.</strong> Open the disk image and run the installer from its <code>Extras</code> folder:</p>
+            <pre><button class="copy" type="button">Copy</button><code>sudo Extras/install.sh</code></pre>
+            <p>It finds your OpenCore EFI, copies <code>MHelper.kext</code>, adds it to <code>config.plist</code> and keeps a backup as <code>config.plist.pre-mhelper</code>.</p>
+            <div class="checkpoint">it asks you to restart. Do that now.</div></li>
+          <li><p><strong>Install the app.</strong> Drag <code>MHelper.app</code> into Applications. The app is not notarised, so clear the quarantine flag once:</p>
+            <pre><button class="copy" type="button">Copy</button><code>xattr -dr com.apple.quarantine /Applications/MHelper.app</code></pre></li>
+          <li><p><strong>Open it.</strong> Launch MHelper. It lives in the menu bar with no Dock icon. Tick <em>Open at login</em> in its panel.</p>
+            <div class="checkpoint">the panel shows your performance mode and fan speeds, and they update live.</div></li>
+        </ol>
+
+        <h2 id="first-settings">Your first five settings</h2>
+        <p>Try these in order. Each one is safe to undo.</p>
+        <ol class="steps">
+          <li><p><strong>Performance mode.</strong> Pick Silent, Balanced or Turbo. Watch the fan RPM change.</p></li>
+          <li><p><strong>Keyboard brightness.</strong> Set it from 0 to 3. The change is immediate.</p></li>
+          <li><p><strong>Keyboard colour.</strong> Choose a colour and an effect (Static, Breathing, Colour cycle or Strobe). Colour resets on reboot unless you choose <em>Save to firmware</em>.</p></li>
+          <li><p><strong>Charge limit.</strong> Set 80 % if you keep the laptop plugged in most days. Battery health lasts longer at 80 %.</p></li>
+          <li><p><strong>Login behaviour.</strong> Settings are reapplied at login and after sleep, so you set them once.</p></li>
+        </ol>
+
+        <h2 id="fan-curves">Fan curves</h2>
+        <div class="callout stop"><span class="label">Careful</span><p>A bad fan curve can let the laptop overheat. Keep fans high at high temperatures, and use <em>Use firmware curve</em> to go back to the factory curve at any time.</p></div>
+        <p>Each fan (CPU, GPU and mid) has its own curve for each performance mode. A curve has eight points, each one a temperature and a fan percentage.</p>
+
+        <h2 id="fn-keys">Fn keys</h2>
+        <p>If AsusSMC is loaded, it handles the Fn keys and MHelper leaves them alone. To let MHelper handle them (Fn+F5 mode, Fn+F4 Aura, keyboard light), turn AsusSMC off:</p>
+        <pre><button class="copy" type="button">Copy</button><code>sudo Extras/asussmc.sh off   # turn it back on with: on</code></pre>
+
+        <h2 id="terminal">Terminal cookbook</h2>
+        <p>Everything the app does is also available as <code>mhelper</code> in Terminal:</p>
+        <pre><button class="copy" type="button">Copy</button><code>mhelper                          # show status
+mhelper mode balanced            # silent | balanced | turbo
+mhelper kbd 2                    # keyboard brightness 0-3
+mhelper color ff8800 breathe 1   # colour, effect, speed
+mhelper charge 80                # charge limit
+mhelper eco 0                    # 1 turns the NVIDIA GPU off</code></pre>
+        <p>Terminal fan curves last until the kext unloads or you restart. The app saves its own curves and reapplies them at login.</p>
+
+        <h2 id="troubleshooting">Troubleshooting</h2>
+        <h3>The app says it is blocked</h3>
+        <p>Run the <code>xattr</code> command from Quick start, then right-click the app and choose <em>Open</em> once.</p>
+        <h3>ROG mouse or keyboard is not responding</h3>
+        <p>Allow MHelper under <em>System Settings → Privacy &amp; Security → Input Monitoring</em>, then reopen it.</p>
+        <h3>Eco mode will not turn on</h3>
+        <p>MHelper refuses Eco while the GPU MUX is in dGPU-only mode. This is on purpose, because it would show a black screen. Set the GPU mode out of dGPU-only first, then try Eco again.</p>
+        <h3>Settings are gone after a restart</h3>
+        <p>That is expected for colours and fan curves set from Terminal. Use <em>Save to firmware</em> for colour, and set curves in the app.</p>
+
+        <h2 id="report">Tell us about your laptop</h2>
+        <ol class="steps">
+          <li><p><strong>Load the probe.</strong> <code>MHelperProbe.kext</code> is in the zip. It only reads what your firmware reports. Run <code>sudo Extras/load.sh probe</code>.</p></li>
+          <li><p><strong>Open an issue</strong> on the MHelper repository with your model, macOS version and the probe output.</p>
+            <div class="checkpoint">the issue has your model and the probe output attached.</div></li>
+        </ol>
+
+        <h2 id="safety">What MHelper will not do</h2>
+        <ul>
+          <li>It never changes the GPU MUX, because dGPU-only mode would show a black screen in macOS.</li>
+          <li>It does not change CPU or GPU power limits.</li>
+          <li>Nothing changes until you press a control. Reading status is passive.</li>
+        </ul>
+      `
+    },
+
+    // ---------- AirPort_RTW89 ----------
+    {
+      id: "airport-rtw89", group: "Projects", title: "AirPort_RTW89", status: "preview",
+      meta: "Preview · Tested on macOS Sequoia 15 and Tahoe 26 · Realtek rtw89 PCIe cards",
+      summary: "Native Wi-Fi for Realtek rtw89 PCIe cards on macOS, ported from the Linux driver.",
+      html: `
+        <p class="lead">Once installed, the card works from the Wi-Fi menu like a Mac's own card: saved networks, scanning, restart and shutdown. I run it every day on an RTL8852BE. Testers have reported it working on an RTL8852AE and an RTL8922DE.</p>
+        <div class="callout info"><span class="label">Source</span><p>Repository: <a href="https://github.com/FranciumOS-org/AirPort_RTW89" target="_blank" rel="noopener">FranciumOS-org/AirPort_RTW89</a></p></div>
+
+        <h2 id="which-card">Check your card first</h2>
+        <p>Find your Wi-Fi card's PCI ID (<code>10EC:xxxx</code>) and match it to the table below. USB versions of these cards are not supported.</p>
+        <table>
+          <tr><th>Card</th><th>PCI ID</th><th>Wi-Fi</th><th>Status</th></tr>
+          <tr><td>RTL8852BE</td><td>B852, B85B</td><td>6</td><td>Works daily on my RTL8852BE</td></tr>
+          <tr><td>RTL8852AE</td><td>8852, A85A</td><td>6</td><td>Works (testers)</td></tr>
+          <tr><td>RTL8922DE</td><td>892D, 882D, 895D</td><td>7</td><td>Works (tester). 6 GHz and Wi-Fi 7 untested</td></tr>
+          <tr><td>RTL8852BTE, RTL8851BE, RTL8852CE, RTL8922AE</td><td>see README</td><td>6 / 6E / 7</td><td>Untested. Reports welcome</td></tr>
+        </table>
+
+        <h2 id="before-you-begin">Before you begin</h2>
+        <ol class="steps">
+          <li><p><strong>Save a boot stick</strong> with your working OpenCore EFI, and boot from it once to confirm.</p></li>
+          <li><p><strong>Install the Wi-Fi stack.</strong> This driver needs three kexts that are not in this project: <code>IOSkywalkFamily</code>, <code>IO80211FamilyLegacy</code> and <code>AMFIPass</code>. Get them from OpenCore Legacy Patcher (the links are in the README). Unzip them into your Downloads folder.</p></li>
+          <li><p><strong>Set SecureBootModel to Disabled</strong> in <code>Misc → Security</code>. The installer can do this for you.</p></li>
+        </ol>
+
+        <h2 id="install">Install</h2>
+        <ol class="steps">
+          <li><p><strong>Download the release.</strong> Get <code>AirPort_RTW89-&lt;version&gt;.zip</code> from the Releases page and unzip it.</p></li>
+          <li><p><strong>Run the Kext Installer.</strong> On macOS, double-click <code>Kext Installer.command</code>. The first time, right-click it and choose <em>Open</em>.</p>
+            <p>It shows every change before making it and asks first. Your old config is kept as <code>config.plist.pre-airport-rtw89</code>.</p></li>
+          <li><p><strong>Restart.</strong> Wi-Fi appears in the menu bar within about 30 seconds of the desktop.</p>
+            <div class="checkpoint">the Wi-Fi menu lists networks. Join one.</div></li>
+        </ol>
+        <div class="callout tip"><span class="label">Updating</span><p>Run the Kext Installer from the new release. Nothing else changes.</p></div>
+
+        <h2 id="test">Test it, step by step</h2>
+        <p>Go through these in order. Stop at the first thing that fails and report it.</p>
+        <ol class="steps">
+          <li><p><strong>Boot.</strong> Does macOS start? If it panics or hangs, boot from your stick and collect the logs there.</p></li>
+          <li><p><strong>Wi-Fi appears.</strong> Within 30 seconds there is a Wi-Fi icon, and it lists networks.</p></li>
+          <li><p><strong>Join a network.</strong> Web pages should load. If you can, also try a WPA3 network, such as a phone hotspot set to WPA3.</p></li>
+          <li><p><strong>Check speed.</strong> Run a speed test next to the router, then a room away. Note the band, 2.4 or 5 GHz.</p></li>
+          <li><p><strong>Restart and shut down.</strong> Wi-Fi should come back by itself each time.</p></li>
+          <li><p><strong>Sleep and wake.</strong> Use Apple menu → Sleep, wait a minute, then wake. This step is still untested, so your result matters.</p></li>
+        </ol>
+
+        <h2 id="troubleshooting">Troubleshooting</h2>
+        <h3>macOS does not start</h3>
+        <p>Boot from your backup stick. Then restore <code>config.plist.pre-airport-rtw89</code> to get back to the previous setup.</p>
+        <h3>WPA3 networks fail</h3>
+        <p>Add the boot argument <code>-rtw89nowpa3</code>, restart, and try again.</p>
+        <h3>Wi-Fi never appears</h3>
+        <p>Check the three Wi-Fi-stack kexts are installed, then collect logs.</p>
+
+        <h2 id="logs">Collect logs and report</h2>
+        <ol class="steps">
+          <li><p><strong>Download the tools zip</strong>, <code>AirPort_RTW89-&lt;version&gt;-tools.zip</code>, and unzip it.</p></li>
+          <li><p><strong>Collect logs:</strong></p>
+            <pre><button class="copy" type="button">Copy</button><code>sudo tools/collect_logs.sh</code></pre>
+            <p>It makes one zip. Passwords are never included, but network names can appear, so check before posting it publicly.</p></li>
+          <li><p><strong>Open an issue</strong> titled with your card and result, for example “RTL8852CE: no networks listed”. Attach the zip and include your card, Mac model, macOS version and what worked.</p>
+            <div class="checkpoint">one issue per card, with the zip attached.</div></li>
+        </ol>
+      `
+    },
+
+    // ---------- Radeonized ----------
+    {
+      id: "radeonized", group: "Projects", title: "Radeonized", status: "upcoming",
+      meta: "Upcoming · Not released yet · Rembrandt GPUs · Last updated 2026-11-05",
+      summary: "A macOS graphics driver for Rembrandt GPUs. Not released yet; I daily-drive it on my own machine.",
+      html: `
+        <p class="lead">Radeonized is a macOS graphics driver for AMD Rembrandt GPUs. It is not released yet. I daily-drive it on my own laptop, and this page describes where it stands.</p>
+
+        <h2 id="what-it-is">What it is</h2>
+        <p>macOS has no native driver for Rembrandt GPUs, so the Radeon graphics in these laptops sit idle. Radeonized fills that gap. It identifies the GPU to macOS, lets Apple's own Radeon compositing run on it, and drives the built-in screen.</p>
+        <p>Rembrandt is AMD's RDNA 2 generation of laptop graphics. Radeonized targets the whole family, not a single chip. The Radeon 680M is the one I have, so it is the one I test on.</p>
+
+        <h2 id="where-it-stands">Where it stands</h2>
+        <ol class="steps">
+          <li><p><strong>Read the GPU.</strong> The discovery table and the GPU's security processor state are read without changing anything. <em>Done.</em></p></li>
+          <li><p><strong>Identity.</strong> macOS reports the GPU as an AMD Radeon 680M with 4 GB and Metal 3. <em>Done.</em></p></li>
+          <li><p><strong>Display.</strong> The built-in panel is driven by the Radeonized framebuffer. The brightness slider works, and the Displays panel offers eight refresh rates. <em>Done.</em></p></li>
+          <li><p><strong>Acceleration.</strong> Apple's Radeon compositing runs on the GPU, and Metal compute returns bit-exact results on the workloads I have run. <em>Done.</em></p></li>
+          <li><p><strong>Frame pacing.</strong> Frame retirement is timed against the display's vertical blank. <em>In progress.</em></p></li>
+          <li><p><strong>Packaging.</strong> A version other people can install with no build step. <em>Not started.</em></p></li>
+        </ol>
+
+        <h2 id="still-open">What is still open</h2>
+        <div class="callout warn"><span class="label">Known gap</span><p>Frame rate is the open problem. My measurements put the remaining gap at roughly half of the target, and most of my current work goes into frame pacing.</p></div>
+        <p>Idle power is measured separately in the Econized project. On my laptop the machine idles near 35 W, and most of that looks like the platform's floor rather than the GPU.</p>
+
+        <h2 id="why-not-released">Why it is not released yet</h2>
+        <p>Installing it means changing the EFI and the kernel collections. I want a version that installs cleanly and recovers cleanly before I ask anyone else to run it.</p>
+      `
+    },
+
+    // ---------- Econized ----------
+    {
+      id: "econized", group: "Projects", title: "Econized", status: "early",
+      meta: "Early · Last updated 2026-10-31 · Ryzen 7 7735HS · macOS",
+      summary: "Measures how much power a Ryzen laptop uses under macOS, starting with CPU package power.",
+      html: `
+        <p class="lead">Econized is a measurement project. It answers one question first: where do the 35 watts of idle power go on a Ryzen 7 7735HS laptop running macOS?</p>
+        <div class="callout info"><span class="label">Source</span><p>Repository: FranciumOS-org/Econized (private for now, so this link may not open for you yet).</p></div>
+
+        <h2 id="what-it-does">What it does today</h2>
+        <p>EconRAPL is a read-only kernel extension. It reads CPU package power from AMD's RAPL counters and publishes it for tools to read. It writes nothing to the CPU, and the build fails if it ever could.</p>
+
+        <h2 id="measure">Measure your package power</h2>
+        <div class="callout warn"><span class="label">Heads up</span><p>Loading a kernel extension can panic the machine. Reboot removes it. Run this on battery with other apps closed, so the numbers mean something.</p></div>
+        <ol class="steps">
+          <li><p><strong>Build it.</strong></p>
+            <pre><button class="copy" type="button">Copy</button><code>make kext</code></pre>
+            <p>This runs the tests, builds the kext, and audits the code for any write to the CPU.</p></li>
+          <li><p><strong>Load it for this boot only.</strong></p>
+            <pre><button class="copy" type="button">Copy</button><code>sudo tools/load.sh</code></pre>
+            <div class="checkpoint">the kext lists as loaded, and the status reads <em>running</em>.</div></li>
+          <li><p><strong>Read the watts.</strong></p>
+            <pre><button class="copy" type="button">Copy</button><code>python3 tools/rapl.py 300   # CPU package, for 5 minutes</code></pre>
+            <p>The tool refuses to print a number unless the samples are advancing. If it refuses, read the reason it prints.</p></li>
+          <li><p><strong>Compare with the whole machine.</strong> Run <code>python3 tools/watts.py 300</code> over the same window. It reads battery drain. The two numbers measure different things, so write down which is which.</p></li>
+        </ol>
+
+        <h2 id="plausible">Is the number believable?</h2>
+        <p>Package power at idle should sit in single digits to low tens of watts. A reading above about 54 W, the chip's ceiling, means the instrument needs checking before you trust the number.</p>
+
+        <h2 id="stuck">If it does not load</h2>
+        <ul>
+          <li>If <code>kmutil</code> refuses with an authorisation or SIP message, nothing was installed. Note the exact message.</li>
+          <li>If the machine hangs or panics, restart. Nothing remains installed.</li>
+          <li>Do not unload it by hand. Restart instead.</li>
+        </ul>
+
+        <h2 id="report">Share your numbers</h2>
+        <p>Post the package and whole-machine watts, the load average, screen brightness, and whether other apps were running. Those details decide what a number means.</p>
+      `
+    },
+
+    // ---------- Reference ----------
+    {
+      id: "repos", group: "Reference", title: "Repositories", status: "",
+      summary: "Every Francium repository on GitHub.",
+      html: `
+        <p class="lead">Every project lives under the FranciumOS-org organisation on GitHub.</p>
+        <table>
+          <tr><th>Repository</th><th>What it is</th></tr>
+          <tr><td><a href="https://github.com/FranciumOS-org/MHelper" target="_blank" rel="noopener">MHelper</a></td><td>Fan, mode, keyboard and battery control for ASUS laptops</td></tr>
+          <tr><td><a href="https://github.com/FranciumOS-org/AirPort_RTW89" target="_blank" rel="noopener">AirPort_RTW89</a></td><td>Native Wi-Fi for Realtek rtw89 cards</td></tr>
+          <tr><td>Radeonized</td><td>Graphics driver for Rembrandt GPUs (not released yet)</td></tr>
+          <tr><td>Econized</td><td>Power measurement for Ryzen laptops (private for now)</td></tr>
+        </table>
+      `
+    },
+    {
+      id: "contribute", group: "Reference", title: "Report and contribute", status: "",
+      summary: "How to report a result and send a change.",
+      html: `
+        <p class="lead">A test result from your own laptop is the most useful thing you can send.</p>
+        <h2 id="report">Report a result</h2>
+        <ol class="steps">
+          <li><p><strong>Pick the guide</strong> for your hardware.</p></li>
+          <li><p><strong>Run the test steps</strong> in order, and note where it stops or works.</p></li>
+          <li><p><strong>Open an issue</strong> on that project's repository with your machine, macOS version and the logs the guide names.</p></li>
+        </ol>
+        <h2 id="code">Send a change</h2>
+        <ol class="steps">
+          <li><p><strong>Fork</strong> the repository and make one focused change.</p></li>
+          <li><p><strong>Open a pull request</strong> that says what changed and how you tested it.</p></li>
+        </ol>
+        <div class="callout tip"><span class="label">Privacy</span><p>Logs can include network names. Check them before you post them publicly.</p></div>
+      `
+    }
+  ];
+
+  const GROUP_ORDER = ["Start", "Projects", "Reference"];
+  const byId = Object.fromEntries(pages.map(p => [p.id, p]));
+  const navRoot = document.getElementById("navRoot");
+  const content = document.getElementById("content");
+  const toc = document.getElementById("toc");
+  const sidebar = document.getElementById("sidebar");
+  const scrim = document.getElementById("scrim");
+  const q = document.getElementById("q");
+  const navEmpty = document.getElementById("navEmpty");
+  const menuBtn = document.getElementById("menuBtn");
+
+  const dotFor = s => s ? `<span class="dot s-${s}" aria-hidden="true"></span>` : "";
+
+  // Sidebar
+  navRoot.innerHTML = GROUP_ORDER.map(g => {
+    const items = pages.filter(p => p.group === g).map(p =>
+      `<a class="nav-link" href="#/${p.id}" data-id="${p.id}" data-text="${p.title.toLowerCase()}">${dotFor(p.status)}${p.title}</a>`
+    ).join("");
+    return `<div class="nav-group"><div class="nav-label">${g}</div>${items}</div>`;
+  }).join("");
+
+  // Search: matches titles and summaries
+  q.addEventListener("input", () => {
+    const term = q.value.trim().toLowerCase();
+    let shown = 0;
+    navRoot.querySelectorAll(".nav-link").forEach(a => {
+      const p = byId[a.dataset.id];
+      const hit = !term || a.dataset.text.includes(term) || (p.summary || "").toLowerCase().includes(term);
+      a.classList.toggle("hidden", !hit);
+      if (hit) shown++;
+    });
+    navRoot.querySelectorAll(".nav-group").forEach(g => {
+      g.style.display = [...g.querySelectorAll(".nav-link")].some(a => !a.classList.contains("hidden")) ? "" : "none";
+    });
+    navEmpty.style.display = shown ? "none" : "block";
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "/" && document.activeElement !== q) { e.preventDefault(); q.focus(); }
+    if (e.key === "Escape") { closeMenu(); q.blur(); }
+  });
+
+  // Mobile menu
+  const openMenu = () => { sidebar.classList.add("open"); scrim.classList.add("on"); menuBtn.setAttribute("aria-expanded", "true"); };
+  const closeMenu = () => { sidebar.classList.remove("open"); scrim.classList.remove("on"); menuBtn.setAttribute("aria-expanded", "false"); };
+  menuBtn.addEventListener("click", () => sidebar.classList.contains("open") ? closeMenu() : openMenu());
+  scrim.addEventListener("click", closeMenu);
+
+  // Render a page
+  function render() {
+    const id = (location.hash.replace(/^#\/?/, "").split("#")[0]) || "home";
+    const page = byId[id] || byId["home"];
+    const idx = pages.indexOf(page);
+    const prev = pages[idx - 1], next = pages[idx + 1];
+    const group = page.group;
+
+    const badge = page.status ? `<span class="pill s-${page.status}">${LABELS[page.status]}</span>` : "";
+    const meta = page.meta ? `<div class="meta">${badge}${page.meta ? `<span class="sep">·</span><span>${page.meta.replace(/^(Available|Preview|Upcoming|Early) · /, "")}</span>` : ""}</div>` : "";
+
+    content.innerHTML = `
+      <div class="crumb">${group} / ${page.title}</div>
+      <h1>${page.title}</h1>
+      ${meta}
+      ${page.html}
+      <nav class="pager" aria-label="Pager">
+        ${prev && prev.group === group ? `<a href="#/${prev.id}"><small>Previous</small>${prev.title}</a>` : `<span></span>`}
+        ${next && next.group === group ? `<a href="#/${next.id}" style="text-align:right"><small>Next</small>${next.title}</a>` : `<span></span>`}
+      </nav>`;
+
+    // Heading anchors and TOC
+    const heads = [...content.querySelectorAll("h2, h3")];
+    heads.forEach(h => {
+      if (!h.id) h.id = h.textContent.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const a = document.createElement("a");
+      a.className = "anchor"; a.href = "#/" + id + "#" + h.id; a.textContent = "#";
+      a.setAttribute("aria-label", "Link to this section");
+      h.appendChild(a);
+    });
+    const h2s = heads.filter(h => h.tagName === "H2");
+    toc.innerHTML = h2s.length
+      ? `<div class="toc-label">On this page</div>` + h2s.map(h => `<a href="#${h.id}" data-target="${h.id}">${h.firstChild.textContent}</a>`).join("")
+      : "";
+
+    // Copy buttons
+    content.querySelectorAll("pre .copy").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(btn.parentElement.querySelector("code").textContent); btn.textContent = "Copied"; }
+        catch { btn.textContent = "Failed"; }
+        setTimeout(() => btn.textContent = "Copy", 1400);
+      });
+    });
+
+    navRoot.querySelectorAll(".nav-link").forEach(a => {
+      const active = a.dataset.id === page.id;
+      a.classList.toggle("active", active);
+      if (active) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+
+    document.title = page.title + " · Francium";
+    window.scrollTo(0, 0);
+    closeMenu();
+    updateTocActive();
+    animateIn();
+  }
+
+  // Entrance motion (GSAP). Skipped when GSAP fails to load or the user prefers reduced motion.
+  // Content is visible by default, so nothing stays hidden if the script is missing.
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+  function animateIn() {
+    if (!window.gsap || reduce.matches) return;
+    gsap.fromTo(content.querySelectorAll(".crumb, h1, .meta, p.lead, .callout"), { autoAlpha: 0, y: 14 }, {
+      autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out", stagger: 0.05, clearProps: "transform"
+    });
+    const cards = content.querySelectorAll(".card");
+    if (cards.length) {
+      gsap.fromTo(cards, { autoAlpha: 0, y: 18 }, {
+        autoAlpha: 1, y: 0, duration: 0.55, ease: "power3.out", stagger: 0.07, delay: 0.15, clearProps: "transform"
+      });
+    }
+    const steps = content.querySelectorAll("ol.steps > li");
+    if (steps.length) {
+      gsap.fromTo(steps, { autoAlpha: 0, x: -8 }, {
+        autoAlpha: 1, x: 0, duration: 0.4, ease: "power2.out", stagger: 0.06, delay: 0.2, clearProps: "transform"
+      });
+    }
+  }
+
+  // Scrollspy for the TOC
+  function updateTocActive() {
+    const links = [...toc.querySelectorAll("a")];
+    let current = null;
+    for (const a of links) {
+      const el = document.getElementById(a.dataset.target);
+      if (el && el.getBoundingClientRect().top < 140) current = a.dataset.target;
+    }
+    links.forEach(a => a.classList.toggle("on", a.dataset.target === current));
+  }
+  window.addEventListener("scroll", updateTocActive, { passive: true });
+
+  // "#/page#anchor": jump within the current page; otherwise render the page
+  window.addEventListener("hashchange", () => {
+    const parts = location.hash.split("#");
+    const pageId = parts[1].replace(/^\//, "") || "home";
+    if (parts.length === 3 && byId[pageId] && document.querySelector("h1")?.textContent === byId[pageId].title) {
+      document.getElementById(parts[2])?.scrollIntoView({ block: "start" });
+      return;
+    }
+    render();
+  });
+
+  // TOC links scroll within the page
+  toc.addEventListener("click", e => {
+    const a = e.target.closest("a");
+    if (!a) return;
+    e.preventDefault();
+    document.getElementById(a.dataset.target)?.scrollIntoView({ block: "start" });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
